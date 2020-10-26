@@ -21,11 +21,14 @@ FOLDS_PATH = path.join(
     DATASETS_ROOT, 'ColorChecker_Recommended_Folds.mat')
 INPUT_SHAPE = (512, 512)
 
+
 def to_numpy(x):
     return np.array(x, dtype=np.float32)
 
+
 def transpose(image):
     return image.transpose(2, 0, 1)
+
 
 def input_transform():
     return transforms.Compose([

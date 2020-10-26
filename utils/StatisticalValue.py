@@ -11,12 +11,14 @@ class StatisticalValue(object):
         self.max = 0
         self.min = -1
         self.count = 0
+        self.values = []
 
     def update(self, val):
         self.val = val
         self.sum += val
         self.count += 1
         self.avg = self.sum / self.count
+        self.values.append(self.val)
 
         if val > self.max:
             self.max = val

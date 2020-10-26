@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser()
 # Basic options to set the task.
 parser.add_argument('-t', '--task', type=str, required=True, choices=['color_constancy_ncrf'],
                     help='The task which you want to excute.')
-parser.add_argument('-s', '--sub_task', type=str, default='train',
+parser.add_argument('-s', '--sub_task', type=str, default='test',
                     help='')
 parser.add_argument('-m', '--mode', type=str, default='train', choices=['train', 'test'],
                     help='')
