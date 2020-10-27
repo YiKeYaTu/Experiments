@@ -1,17 +1,10 @@
-#!/user/bin/python
-# coding=utf-8
 from arguments import *
 from constant import *
 from importlib import import_module
 from utils.functions.checkpoint import load_checkpoint, save_checkpoint
-from utils.Logger import Logger
 import os
-import sys
-
-
-def create_tmp_root():
-    if os.path.isdir(TMP_ROOT) is not True:
-        os.makedirs(TMP_ROOT)
+import env
+from env import logger
 
 
 def resume_model(model):
@@ -19,16 +12,11 @@ def resume_model(model):
         load_checkpoint(model)
 
 
-def main():
+def train():
     sub_module = import_module('tasks.%s.%s' %
                                (arguments.task, arguments.mode))
     model = sub_module.model
-
-    create_tmp_root()
     resume_model(model)
-
-    logger = Logger(join(TMP_ROOT, 'log.txt'))
-    sys.stdout = log
 
     for epoch in range(EPOCH):
         epoch = epoch + 1
@@ -37,6 +25,28 @@ def main():
             'epoch': epoch,
             'state_dict': model.state_dict(),
         }, epoch=epoch, iteration=1)
+        logger.flush()
+
+
+def test():
+    sub_module = import_module('tasks.%s.%s' %
+                               (arguments.task, arguments.mode))
+    model = sub_module.model
+    resume_model(model)
+
+
+def default():
+    import_module('tasks.%s.%s' %
+                  (arguments.task, arguments.mode))
+
+
+def main():
+    if arguments.mode == 'train':
+        train()
+    elif arguments.mode == 'test':
+        test()
+    else:
+        default()
 
 
 if __name__ == '__main__':

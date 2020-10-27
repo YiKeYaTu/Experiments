@@ -8,8 +8,10 @@ def gen_checkpoint_name(epoch, iteration):
 
 
 def save_checkpoint(state, epoch=1, iteration=1):
+    print('Start saving checkpoint...')
     torch.save(state, os.path.join(
         TMP_ROOT, gen_checkpoint_name(epoch, iteration)))
+    print('Finish saving.')
 
 
 def load_checkpoint(model, epoch=None, iteration=None):

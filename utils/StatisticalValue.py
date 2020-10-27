@@ -5,23 +5,27 @@ class StatisticalValue(object):
         self.reset()
 
     def reset(self):
-        self.val = 0
+        self.val = (None, None)
+        self.max = (None, None)
+        self.min = (None, None)
+
         self.avg = 0
         self.sum = 0
-        self.max = 0
-        self.min = -1
+
         self.count = 0
         self.values = []
 
-    def update(self, val):
-        self.val = val
-        self.sum += val
+    def update(self, val, identification=None):
+        self.val = (val, identification)
+
         self.count += 1
+        
+        self.sum += self.val[0]
         self.avg = self.sum / self.count
         self.values.append(self.val)
 
-        if val > self.max:
-            self.max = val
+        if self.max[0] is None or self.val[0] > self.max[0]:
+            self.max = self.val
 
-        if self.min == -1 or val < self.min:
-            self.min = val
+        if self.min[0] is None or self.val[0] < self.min[0]:
+            self.min = self.val
