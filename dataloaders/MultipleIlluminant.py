@@ -1,0 +1,3 @@
+import torchvision
+
+torchvision.datasets.ImageFolder

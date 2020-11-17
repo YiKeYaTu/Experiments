@@ -1,41 +1,34 @@
 #!/user/bin/python
 # coding=utf-8
 
-from dataloaders.ColorChecker import ColorCheckerLoader, default_input_transform
-from models.ColorConstancyNCRF import ColorConstancyNCRF
+from dataloaders.ColorChecker import ColorCheckerLoader
 from torch.utils.data import DataLoader
 from constant import *
+from models.ColorConstancyWithAlexNet import ColorConstancyWithAlexNet
 from utils.StatisticalValue import StatisticalValue
 from utils.functions.status import print_training_status
 from loss_functions.angular_loss import angular_loss
 from env import writer
-from torchvision import transforms
-from loss_functions.cross_entropy_loss_ct import cross_entropy_loss
 import torch
 import torchvision
 import numpy as np
 import os
 
+fold1_train_dataset = ColorCheckerLoader(
+    fold_number=1, is_training=True, input_transform=torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor()
+    ]))
 fold1_train_loader = DataLoader(
-    ColorCheckerLoader(
-        fold_number=1, is_training=True, should_load_boundaries=True,
-        input_transform=transforms.ToTensor()
-    ),
-    batch_size=10,
-    shuffle=True,
-    num_workers=8
-)
+    fold1_train_dataset, batch_size=16, shuffle=True, num_workers=8)
 
-model = ColorConstancyNCRF()
+model = ColorConstancyWithAlexNet()
 model.to(device=DEVICE)
 
-mse_loss = torch.nn.MSELoss(reduction='sum')
-optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=LEARNING_RATE,
-    weight_decay=WEIGHT_DECAY
-)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+criterion = torch.nn.MSELoss(reduction='sum')
+# criterion = angular_loss
+optimizer = torch.optim.Adam(model.parameters(),
+                             lr=LEARNING_RATE, weight_decay=5*10e-5)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
 
 def save_training_process(root, images, labels, names, predictions):
@@ -60,7 +53,7 @@ def save_training_process(root, images, labels, names, predictions):
             os.makedirs(root)
 
         torchvision.utils.save_image(
-            combined_images, os.path.join(root, names[idx].replace('tiff', 'jpg')))
+            combined_images / 255, os.path.join(root, names[idx].replace('tiff', 'jpg')))
 
 
 def run(epoch):
@@ -69,17 +62,14 @@ def run(epoch):
 
     optimizer.zero_grad()
 
-    for idx, (images, edges, labels, names) in enumerate(fold1_train_loader):
-        images, labels, edges = images.to(
-            DEVICE), labels.to(DEVICE), edges.to(DEVICE)
+    for idx, (images, labels, names) in enumerate(fold1_train_loader):
+        images, labels = images.to(DEVICE), labels.to(DEVICE)
 
-        illuminatios, boundaries = model(images)
-        loss = (mse_loss(illuminatios, labels) + cross_entropy_loss(boundaries, edges)) / ITERATION_SIZE
+        predictions = model(images)
+        loss = criterion(predictions, labels) / ITERATION_SIZE
         loss.backward()
 
-        with torch.no_grad():
-            angular_error = angular_loss(illuminatios, labels)
-
+        angular_error = angular_loss(predictions, labels)
         statistical_angular_errors.update(angular_error.item(), names)
         statistical_losses.update(loss.item())
 
@@ -93,9 +83,9 @@ def run(epoch):
                 'Angular Error: mean: {errors.avg}, worst: {errors.max[0]}, best: {errors.min[0]}'.format(
                     errors=statistical_angular_errors))
 
-        if (idx + 1) % 30 == 0:
+        if (idx + 1) % 10 == 0:
             save_training_process(os.path.join(
-                TMP_ROOT, 'epoch-%s-training-view' % epoch), images, labels, names, illuminatios)
+                TMP_ROOT, 'epoch-%s-training-view' % epoch), images, labels, names, predictions)
 
     scheduler.step()
 

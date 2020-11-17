@@ -1,31 +1,49 @@
+#!/user/bin/python
+# coding=utf-8
+
 from arguments import *
 from constant import *
 from importlib import import_module
 from utils.functions.checkpoint import load_checkpoint, save_checkpoint
 import os
-import env
-from env import logger
 
 
 def resume_model(model):
-    if RESUME is True:
+    if RESUME is True or arguments.mode == 'test':
         load_checkpoint(model)
 
 
 def train():
+    from env import logger, writer
     sub_module = import_module('tasks.%s.%s' %
                                (arguments.task, arguments.mode))
     model = sub_module.model
+    model.train()
+    optimizer = sub_module.optimizer
+    scheduler = sub_module.scheduler
+    # Recording model's information.
+    print('Current using device\' no is: %s' % DEVICE)
+    print(model)
+    print(optimizer)
+    # Loading parameters for model.
     resume_model(model)
+    logger.flush()
 
     for epoch in range(EPOCH):
         epoch = epoch + 1
-        sub_module.run(epoch)
+        statistical_losses = sub_module.run(epoch)
         save_checkpoint({
             'epoch': epoch,
             'state_dict': model.state_dict(),
         }, epoch=epoch, iteration=1)
+
+        print('Epoch %s\'s average loss value is: %f' %
+              (epoch, statistical_losses.avg))
+        writer.add_scalar('AverageLoss/Epoch', statistical_losses.avg, epoch)
         logger.flush()
+
+    logger.close()
+    writer.close()
 
 
 def test():
@@ -33,6 +51,8 @@ def test():
                                (arguments.task, arguments.mode))
     model = sub_module.model
     resume_model(model)
+    model.eval()
+    sub_module.run()
 
 
 def default():
@@ -41,6 +61,7 @@ def default():
 
 
 def main():
+    from env import logger, writer
     if arguments.mode == 'train':
         train()
     elif arguments.mode == 'test':

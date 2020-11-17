@@ -19,3 +19,4 @@ ITERATION_SIZE = arguments.iteration_size
 LEARNING_RATE = arguments.learning_rate
 DEVICE = torch.device(arguments.device if arguments.device == 'cpu' else 'cuda:' + arguments.device)
 RESUME = arguments.resume
+WEIGHT_DECAY = arguments.weight_decay

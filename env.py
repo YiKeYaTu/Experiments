@@ -4,13 +4,23 @@
 from utils.Logger import Logger
 from torch.utils.tensorboard import SummaryWriter
 from constant import *
+from os.path import join
 import sys
 import os
-
+import time
+# Create temporal directory for storing files.
 if os.path.isdir(TMP_ROOT) is not True:
     os.makedirs(TMP_ROOT)
+# Create temporal directory for saving checkpoints.
+if os.path.isdir(join(TMP_ROOT, 'checkpoints')) is not True:
+    os.makedirs(join(TMP_ROOT, 'checkpoints'))
 
-logger = Logger(join(TMP_ROOT, 'log.txt'))
+logger = Logger(
+    join(
+        TMP_ROOT,
+        'log_%s.txt' % time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+    )
+)
 sys.stdout = logger
 
-writer = SummaryWriter(log_dir=os.path.join(TMP_ROOT, 'tensorboard'))
+writer = SummaryWriter(log_dir=join(TMP_ROOT, 'tensorboard_%s' % time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())))
