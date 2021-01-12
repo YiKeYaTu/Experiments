@@ -32,6 +32,7 @@ def load_checkpoint(model, epoch=None, iteration=None):
     print('Candidate checkpoints are: %s.' % checkpoints)
 
     if len(checkpoints) > 0:
+        print('start loading.')
         model.load_state_dict(torch.load(os.path.join(
             TMP_ROOT, 'checkpoints', checkpoints[-1]))['state_dict'])
         print('The "%s" checkpoint has been loaded.' % checkpoints[-1])

@@ -5,7 +5,7 @@ from os.path import abspath, join, dirname
 from arguments import *
 
 # Datasets and Current path of directory..
-DATASETS_ROOT = abspath(dirname(__file__) + os.sep + '../Datasets/ColorChecker')
+DATASETS_ROOT = abspath(dirname(__file__) + os.sep + '../../DataSets/')
 PROJECT_ROOT = abspath(dirname(__file__))
 
 # Current task's working directory.

@@ -4,6 +4,9 @@ import numpy as np
 
 
 def angular_loss(output, target):
+    output = output.reshape(*output.shape[0:2], -1)
+    target = target.reshape(*target.shape[0:2], -1)
+
     angular_losses = (180.0 / math.pi) * torch.acos(
         torch.clamp(
             torch.sum(output * target, dim=1) /

@@ -3,7 +3,7 @@
 
 from utils.Logger import Logger
 from torch.utils.tensorboard import SummaryWriter
-from constant import *
+from constant import TMP_ROOT
 from os.path import join
 import sys
 import os
@@ -23,4 +23,6 @@ logger = Logger(
 )
 sys.stdout = logger
 
-writer = SummaryWriter(log_dir=join(TMP_ROOT, 'tensorboard_%s' % time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())))
+epoch_writer = SummaryWriter(log_dir=join(TMP_ROOT, 'tensorboard/epoch'))
+iteration_writer = SummaryWriter(log_dir=join(TMP_ROOT, 'tensorboard/iteration'))
+ 

@@ -8,6 +8,7 @@ class StatisticalValue(object):
         self.val = (None, None)
         self.max = (None, None)
         self.min = (None, None)
+        self.mid = (None, None)
 
         self.avg = 0
         self.sum = 0
@@ -15,7 +16,7 @@ class StatisticalValue(object):
         self.count = 0
         self.values = []
 
-    def update(self, val, identification=None):
+    def update(self, val, identification=None, sort=False):
         self.val = (val, identification)
 
         self.count += 1
@@ -23,6 +24,10 @@ class StatisticalValue(object):
         self.sum += self.val[0]
         self.avg = self.sum / self.count
         self.values.append(self.val)
+
+        if sort is True:
+            self.values = sorted(self.values, key=lambda x: x[0])
+            self.mid = self.values[int(self.count / 2)]
 
         if self.max[0] is None or self.val[0] > self.max[0]:
             self.max = self.val

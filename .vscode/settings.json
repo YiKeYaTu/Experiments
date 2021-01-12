@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/opt/miniconda3/envs/py36/bin/python"
+    "python.pythonPath": "/home/ncrc-super/anaconda3/envs/py17/bin/python",
+    "python.linting.enabled": false
 }
