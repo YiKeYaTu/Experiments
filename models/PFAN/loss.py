@@ -21,13 +21,13 @@ class EdgeSaliencyLoss(nn.Module):
             1 - input_ + eps)
         return torch.mean(wbce_loss)
 
-    def forward(self, y_pred, y_gt):
+    def forward(self, y_pred, y_gt, weight_0=1.0, weight_1=1.12):
         # Generate edge maps
         y_gt_edges = F.relu(torch.tanh(F.conv2d(y_gt, self.laplacian_kernel, padding=(1, 1))))
         y_pred_edges = F.relu(torch.tanh(F.conv2d(y_pred, self.laplacian_kernel, padding=(1, 1))))
 
         # sal_loss = F.binary_cross_entropy(input=y_pred, target=y_gt)
-        sal_loss = self.weighted_bce(input_=y_pred, target=y_gt, weight_0=1.0, weight_1=1.12)
+        sal_loss = self.weighted_bce(input_=y_pred, target=y_gt, weight_0=weight_0, weight_1=weight_1)
         edge_loss = F.binary_cross_entropy(input=y_pred_edges, target=y_gt_edges)
 
         total_loss = self.alpha_sal * sal_loss + (1 - self.alpha_sal) * edge_loss

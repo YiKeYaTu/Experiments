@@ -122,6 +122,7 @@ class PFAN(nn.Module):
         global vgg_conv1_2, vgg_conv2_2, vgg_conv3_3, vgg_conv4_3, vgg_conv5_3
 
         # Pass input_ through vgg16 to generate intermediate features
+
         self.vgg16(input_)
         # print(vgg_conv1_2.size())
         # print(vgg_conv2_2.size())
@@ -134,8 +135,17 @@ class PFAN(nn.Module):
         conv4_cpfe_feats = self.cpfe_conv4_3(vgg_conv4_3)
         conv5_cpfe_feats = self.cpfe_conv5_3(vgg_conv5_3)
 
-        conv4_cpfe_feats = F.interpolate(conv4_cpfe_feats, scale_factor=2, mode='bilinear', align_corners=True)
-        conv5_cpfe_feats = F.interpolate(conv5_cpfe_feats, scale_factor=4, mode='bilinear', align_corners=True)
+        # Process low level features
+        conv1_feats = self.ll_conv_1(vgg_conv1_2)
+        conv1_feats = F.relu(self.ll_bn_1(conv1_feats))
+        conv2_feats = self.ll_conv_2(vgg_conv2_2)
+        conv2_feats = F.relu(self.ll_bn_2(conv2_feats))
+
+        _, _, oh1, ow1 = conv1_feats.shape
+        _, _, oh3, ow3 = conv3_cpfe_feats.shape
+
+        conv4_cpfe_feats = F.interpolate(conv4_cpfe_feats, size=(oh3, ow3), mode='bilinear', align_corners=True)
+        conv5_cpfe_feats = F.interpolate(conv5_cpfe_feats, size=(oh3, ow3), mode='bilinear', align_corners=True)
 
         conv_345_feats = torch.cat((conv3_cpfe_feats, conv4_cpfe_feats, conv5_cpfe_feats), dim=1)
 
@@ -144,15 +154,9 @@ class PFAN(nn.Module):
 
         conv_345_feats = self.hl_conv1(conv_345_feats)
         conv_345_feats = F.relu(self.hl_bn1(conv_345_feats))
-        conv_345_feats = F.interpolate(conv_345_feats, scale_factor=4, mode='bilinear', align_corners=True)
+        conv_345_feats = F.interpolate(conv_345_feats, size=(oh1, ow1), mode='bilinear', align_corners=True)
 
-        # Process low level features
-        conv1_feats = self.ll_conv_1(vgg_conv1_2)
-        conv1_feats = F.relu(self.ll_bn_1(conv1_feats))
-        conv2_feats = self.ll_conv_2(vgg_conv2_2)
-        conv2_feats = F.relu(self.ll_bn_2(conv2_feats))
-
-        conv2_feats = F.interpolate(conv2_feats, scale_factor=2, mode='bilinear', align_corners=True)
+        conv2_feats = F.interpolate(conv2_feats, size=(oh1, ow1), mode='bilinear', align_corners=True)
         conv_12_feats = torch.cat((conv1_feats, conv2_feats), dim=1)
         conv_12_feats = self.ll_conv_3(conv_12_feats)
         conv_12_feats = F.relu(self.ll_bn_3(conv_12_feats))

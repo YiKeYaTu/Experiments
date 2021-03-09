@@ -1,8 +1,9 @@
 class StatisticalValue(object):
     """Computes and stores the average and current value"""
 
-    def __init__(self):
+    def __init__(self, record=True):
         self.reset()
+        self.record = record
 
     def reset(self):
         self.val = (None, None)
@@ -23,14 +24,16 @@ class StatisticalValue(object):
         
         self.sum += self.val[0]
         self.avg = self.sum / self.count
-        self.values.append(self.val)
-
-        if sort is True:
-            self.values = sorted(self.values, key=lambda x: x[0])
-            self.mid = self.values[int(self.count / 2)]
 
         if self.max[0] is None or self.val[0] > self.max[0]:
             self.max = self.val
 
         if self.min[0] is None or self.val[0] < self.min[0]:
             self.min = self.val
+
+        if self.record:
+            self.values.append(self.val)
+
+            if sort is True:
+                self.values = sorted(self.values, key=lambda x: x[0])
+                self.mid = self.values[int(self.count / 2)]

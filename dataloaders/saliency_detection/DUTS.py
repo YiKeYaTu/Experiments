@@ -84,7 +84,7 @@ class DUTS(Dataset):
         )
 
         self.train = train
-        self.augment = augment
+        self.augment = train and augment
         self.coordinate = coordinate
         self.normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],

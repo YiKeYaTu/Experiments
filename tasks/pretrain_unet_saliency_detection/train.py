@@ -47,6 +47,8 @@ def run(epoch):
 
     for idx, (images, labels, names) in enumerate(trainloader):
         images, labels = images.to(DEVICE), labels.to(DEVICE)
+
+        print(images.shape)
         
         outputs = model(images)
         outputs_list = [outputs]

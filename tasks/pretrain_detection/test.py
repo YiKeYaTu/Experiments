@@ -22,7 +22,7 @@ testloader = DataLoader(
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
     pretrained=True,
     progress=True,
-    box_detections_per_img=100,
+    box_detections_per_img=1,
 )
 
 # replace the classifier with a new one, that has

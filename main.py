@@ -8,9 +8,12 @@ from utils.functions.checkpoint import load_checkpoint, save_checkpoint
 import os
 
 
-def resume_model(model, force=False):
+def resume_model(model, optimizer=None, force=False):
     if RESUME is True or force is True:
-        load_checkpoint(model)
+        if RESUME_NO != -1:
+            load_checkpoint(model, optimizer, RESUME_NO, 1)
+        else:
+            load_checkpoint(model, optimizer)
 
 
 def train():
@@ -22,20 +25,19 @@ def train():
     optimizer = sub_module.optimizer
     criterion = sub_module.criterion
     # Loading parameters for model.
-    resume_model(model)
+    resume_model(model, optimizer)
     logger.flush()
 
+    print('Current using device\' no is: %s' % DEVICE)
+    # Recording model's information.
+    print(model)
+    print(optimizer)
+
     for epoch in range(EPOCH):
-        # Recording model's information.
-        print('Current using device\' no is: %s' % DEVICE)
-        print(model)
-        print(optimizer)
-        
-        epoch = epoch + 1
         statistical_losses = sub_module.run(epoch)
         save_checkpoint({
             'epoch': epoch,
-            'optimizer': optimizer.state_dict(),
+            'optimizer': optimizer and optimizer.state_dict(),
             'state_dict': model.state_dict(),
         }, epoch=epoch, iteration=1)
 
@@ -43,6 +45,8 @@ def train():
             print('Epoch %s\'s average loss value is: %f' %
                 (epoch, statistical_losses.avg))
             epoch_writer.add_scalar('AverageLoss/Epoch', statistical_losses.avg, epoch)
+
+        print('Epoch %s finished.' % (epoch))
             
         logger.flush()
 
@@ -50,6 +54,10 @@ def train():
             test()
         except:
             print('No test module can be loaded.')
+
+        if optimizer.state_dict()['param_groups'][0]['lr'] == 0:
+            print('Train finished.')
+            break
 
     logger.close()
     epoch_writer.close()

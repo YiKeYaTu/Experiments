@@ -17,10 +17,25 @@ def save_checkpoint(state, epoch=1, iteration=1):
     print('Finish saving.')
 
 
-def load_checkpoint(model, epoch=None, iteration=None):
+def load_checkpoint(model, optimizer=None, epoch=None, iteration=None):
     if epoch is not None and iteration is not None:
-        model.load_state_dict(torch.load(os.path.join(
-            TMP_ROOT, 'checkpoints', gen_checkpoint_name(epoch, iteration))))
+        print('Load target checkpoint %s-%s' % (epoch, iteration))
+        checkpoint = torch.load(
+            os.path.join(
+                TMP_ROOT, 'checkpoints', gen_checkpoint_name(epoch, iteration)
+            ),
+            map_location=DEVICE
+        )
+
+        if checkpoint['state_dict'] is not None:
+            model.load_state_dict(
+                checkpoint['state_dict']
+            )
+        if checkpoint['optimizer'] is not None and optimizer is not None:
+            optimizer.load_state_dict(
+                checkpoint['optimizer']
+            )
+            
         print('The "%s" checkpoint has been loaded.' %
               gen_checkpoint_name(epoch, iteration))
         return True
@@ -33,8 +48,14 @@ def load_checkpoint(model, epoch=None, iteration=None):
 
     if len(checkpoints) > 0:
         print('start loading.')
-        model.load_state_dict(torch.load(os.path.join(
-            TMP_ROOT, 'checkpoints', checkpoints[-1]))['state_dict'])
+        model.load_state_dict(
+            torch.load(
+                os.path.join(
+                    TMP_ROOT, 'checkpoints', checkpoints[-1],
+                ),
+                map_location=DEVICE
+            )['state_dict']
+        )
         print('The "%s" checkpoint has been loaded.' % checkpoints[-1])
         return True
     else:

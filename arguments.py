@@ -26,5 +26,7 @@ parser.add_argument('-d', '--device', type=str, default=('0' if torch.cuda.is_av
                     help='')
 parser.add_argument('-r', '--resume', type=bool, default=False,
                     help='')
+parser.add_argument('-rn', '--resume_no', type=int, default=-1,
+                    help='')
 
 arguments = parser.parse_args()

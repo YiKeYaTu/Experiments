@@ -2,14 +2,12 @@ import math
 import sys
 import time
 import torch
-import os
-from constant import TMP_ROOT
 
 import torchvision.models.detection.mask_rcnn
 
-from tasks.pretrain_detection.coco_utils import get_coco_api_from_dataset
-from tasks.pretrain_detection.coco_eval import CocoEvaluator
-import tasks.pretrain_detection.utils as utils
+from tasks.exdark_v1.detection.coco_utils import get_coco_api_from_dataset
+from tasks.exdark_v1.detection.coco_eval import CocoEvaluator
+import tasks.exdark_v1.detection.utils as utils
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
@@ -25,10 +23,9 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
 
         lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
-    for images, targets, _ in metric_logger.log_every(data_loader, print_freq, header):
+    for images, targets, names in metric_logger.log_every(data_loader, print_freq, header):
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-
         loss_dict = model(images, targets)
 
         losses = sum(loss for loss in loss_dict.values())
@@ -70,8 +67,7 @@ def _get_iou_types(model):
 
 
 @torch.no_grad()
-def evaluate(model, data_loader, device):
-    sub_dir = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+def evaluate(model, data_loader, device, hook):
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
     torch.set_num_threads(1)
@@ -84,35 +80,17 @@ def evaluate(model, data_loader, device):
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
 
-    for images, targets, saliency in metric_logger.log_every(data_loader, 100, header):
+    for images, targets, names in metric_logger.log_every(data_loader, 100, header):
         images = list(img.to(device) for img in images)
 
         torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(images)
-        view_data = torch.zeros((outputs[0]['boxes'].shape[0] + 3, *images[0].shape))
-        # print(view_data.shape, images[0].shape)
-        view_data[0, :, :, :] = images[0]
-        view_data[1, 0:3, :, :] = torch.from_numpy(saliency[0])
-
-        xmin, ymin, xmax, ymax = torch.squeeze(targets[0]['boxes'][0])
-        view_data[2, :, :, :] = 0
-        view_data[2, :, int(ymin):int(ymax), int(xmin):int(xmax)] = 1
-
-        for idx, (box) in enumerate(outputs[0]['boxes']):
-            xmin, ymin, xmax, ymax = box
-            view_data[idx + 3, :, :, :] = 0
-            view_data[idx + 3, :, int(ymin):int(ymax), int(xmin):int(xmax)] = 1
-
-        if not os.path.isdir(os.path.join(TMP_ROOT, 'test', sub_dir)):
-            os.makedirs(os.path.join(TMP_ROOT, 'test', sub_dir))
-
-        torchvision.utils.save_image(
-            view_data,
-            os.path.join(TMP_ROOT, 'test/%s/%s.png' % (sub_dir, targets[0]['image_id']))
-        )
 
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+
+        hook(images, targets, outputs, names)
+
         model_time = time.time() - model_time
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}

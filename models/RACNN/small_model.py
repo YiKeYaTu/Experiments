@@ -16,34 +16,6 @@ from torch.nn.modules.conv import _ConvNd
 from torch.nn.modules.utils import _pair
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-class GatedSpatialConv2d(_ConvNd):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1,
-                 padding=0, dilation=1, groups=1, bias=False):
-        kernel_size = _pair(kernel_size)
-        stride = _pair(stride)
-        padding = _pair(padding)
-        dilation = _pair(dilation)
-        super(GatedSpatialConv2d, self).__init__(
-            in_channels, out_channels, kernel_size, stride, padding, dilation,
-            False, _pair(0), groups, bias, 'zeros')
-
-        self._gate_conv = nn.Sequential(
-            nn.BatchNorm2d(in_channels * 2),
-            nn.Conv2d(in_channels * 2, in_channels * 2, 1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels * 2, 1, 1),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, input_features, gating_features):
-        alphas = self._gate_conv(
-            torch.cat([input_features, gating_features], dim=1))
-
-        input_features = ((input_features + gating_features) * alphas)
-        return F.conv2d(input_features, self.weight, self.bias, self.stride,
-                        self.padding, self.dilation, self.groups)
-
 class RCNN(nn.Module):
     def __init__(self, **kwargs):
         super(RCNN, self).__init__()
@@ -74,10 +46,8 @@ class RCNN(nn.Module):
 class RACNN(nn.Module):
     def __init__(self):
         super(RACNN, self).__init__()
-        self.unet_global = UNet(3, 1)
-        self.unet_local = UNet(3, 1)
+        self.unet = UNet(3, 1)
         self.rcnn = RCNN()
-        self.gate = GatedSpatialConv2d(64, 1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -139,37 +109,24 @@ class RACNN(nn.Module):
                 'image': x[idx][:, ymin: ymax, xmin: xmax]
             })
 
-        logits1, features1 = self.unet_global(x)
         logits2 = []
         features2 = []
 
         for crop in crops:
             xmin, ymin, xmax, ymax = crop['box']
-            _logits2, _features2 = self.unet_local(crop['image'].unsqueeze(dim=0))
+            _logits2, _features2 = self.unet(crop['image'].unsqueeze(dim=0))
             logits2.append(
-                nn.ConstantPad2d(
-                    (xmin, x[idx].shape[2] - xmax,
-                     ymin, x[idx].shape[1] - ymax),
-                    0
-                )(self.sigmoid(_logits2).squeeze(0))
+                self.sigmoid(_logits2)
             )
             features2.append(
-                nn.ConstantPad2d(
-                    (xmin, x[idx].shape[2] - xmax,
-                     ymin, x[idx].shape[1] - ymax),
-                    0
-                )(_features2.squeeze(0))
+                _features2
             )
 
-        logits2 = torch.stack(logits2)
-        features2 = torch.stack(features2)
+        # logits2 = torch.stack(logits2)
+        # features2 = torch.stack(features2)
 
-        outputs = self.gate(features1, features2)
 
-        outputs = self.sigmoid(outputs)
-        logits1 = self.sigmoid(logits1)
-
-        return outputs, logits1, logits2, crops
+        return logits2, crops
 
 
 if __name__ == '__main__':
